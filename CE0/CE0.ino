@@ -6,6 +6,7 @@
     server_ip is the IP address of the ESP8266 module, will be
     printed to Serial when the module is connected.
 */
+#include <Ticker.h>
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
 #ifndef UNIT_TEST
@@ -17,16 +18,20 @@
 #include <SoftwareSerial.h> // SoftwareSerial library (사용 안함) 
 #include <dht11.h>
 #define DHT11PIN 16// D1 PIN NUMBER : 2
+Ticker flipper;
 dht11 DHT11; // DHT 11을 사용
 IRsend irsend(IR_LED);  // Set the GPIO to be used to sending the message.
 unsigned char  pms[32]; // 32바이트 값을 넣기 위해 사용 , pms7003은 32바이트 값을 받아온다.
 //밑부터 WIFI 통신을 위한 접속 단계
-const char* ssid  = "";  // 공유기 ID
-const char* password = ""; // PASSWORD
+const char* ssid  = "AndroidHotspot2750";  // 공유기 ID
+const char* password = "01095192750"; // PASSWORD
 const char* host = "api.thingspeak.com"; // Thingspeak address
 const char* writeAPIKey = "2L90HSLFYCQVFDNC"; // Private key
 int cds = A0; // 조도센서 A0 연결
-int PM10 = 0;
+int PM10 = 37;
+int cdsValue = 120;
+int temperature = 0;
+int humidity = 0;
 int thehour;
 WiFiServer server(80);
 WiFiClient client; // wificlient  변수 명시
@@ -75,11 +80,11 @@ void setup() {
   // Print the IP address
   Serial.println(WiFi.localIP());
     int thehour;
-
+     flipper.attach(1, flip);
 }
 
 void loop() {
-   WiFi.hostByName(ntpServerName, timeServerIP); 
+  WiFi.hostByName(ntpServerName, timeServerIP);
   sendNTPpacket(timeServerIP); // send an NTP packet to a time server
   delay(1000);
   int cb = udp.parsePacket();
@@ -102,9 +107,8 @@ void loop() {
   // wait ten seconds before asking for the time again
   delay(5000);
 
-  if (thehour==50) {
-    
-      if (Serial.available() >= 32) {    // 들어온 값이 32 btye 값이 들어오면 사용합니다.
+  if (thehour % 2 == 1) {
+    if (Serial.available() >= 32) {    // 들어온 값이 32 btye 값이 들어오면 사용합니다.
 
       for (int j = 0; j < 32 ; j++) {    // pms 에 값들을 입력한다.
         pms[j] = Serial.read();
@@ -120,7 +124,9 @@ void loop() {
       }
     }
     int chk = DHT11.read(DHT11PIN);  // ckh 변수 선언입니다.
-    int cdsValue = (analogRead(cds));
+    //int cdsValue = (analogRead(cds)) * 500;
+    temperature = DHT11.temperature;
+    humidity = DHT11.humidity;
     Serial.print("CDS =  ");
     Serial.println(cdsValue);
     Serial.println("-----------");
@@ -132,10 +138,10 @@ void loop() {
     Serial.print("Humidity (%): ");
     Serial.println((float)DHT11.humidity, 2);
     Serial.println("----line-------");
-      while (Serial.available())  //D1의 스택에러 방지용으로 만들었습니다.
-  {
-    Serial.read();
-  }
+    while (Serial.available())  //D1의 스택에러 방지용으로 만들었습니다.
+    {
+      Serial.read();
+    }
     // make TCP connections
     WiFiClient client; // wificlient  변수 명시
     const int httpPort = 80;  // 포트 80  http 일겁니다.
@@ -187,14 +193,14 @@ void loop() {
   // Match the request
 
   if (req.indexOf("/airhigh") != -1) { //탐구관 지하 B101 20명 이상
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 9; i++) {
       Serial.println("Temperature (°C): 25 Power : Good !");
       irsend.sendRaw(onsignalfull, 59, 38);  // Send a raw data capture at 38kHz.
       delay(40);
     }
   }
   else if (req.indexOf("/airmid") != -1) { //탐구관 지하 B101 20명 이하
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 9; i++) {
       Serial.println("Temperature (°C): 25 Power : Soso !");
       irsend.sendRaw(onsignalaver, 59, 38);  // Send a raw data capture at 38kHz.
       delay(40);
@@ -202,24 +208,33 @@ void loop() {
   }
 
   else if (req.indexOf("/duston") != -1) { //탐구관 지하 B101 20명 이하
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 9; i++) {
       Serial.println("Aircleaner On");
+      irsend.sendRaw(onaircleaner, 59, 38);  // Send a raw data capture at 38kHz.
       delay(40);
     }
   }
   else if (req.indexOf("/lighton") != -1) { //탐구관 지하 B101 20명 이하
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 9; i++) {
       Serial.println("Light On");
       delay(40);
     }
   }
   else if (req.indexOf("/cleanon") != -1) { //탐구관 지하 B101 20명 이하
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 9; i++) {
+      
       Serial.print("Humidity (%) Controler On ");
+      irsend.sendRaw(dehumidification, 59, 38);  // Send a raw data capture at 38kHz.
       delay(40);
     }
   }
-
+  else if (req.indexOf("/turnoff") != -1) { //탐구관 지하 B101 20명 이하
+    for (int i = 0; i < 9; i++) {
+      irsend.sendRaw(offsignalaver, 59, 38);  // Send a raw data capture at 38kHz.
+      Serial.print("All OFF ");
+      delay(40);
+    }
+  }
   else {
     Serial.println("invalid request");
     client.stop();
@@ -264,4 +279,8 @@ void sendNTPpacket(IPAddress& address)
   udp.beginPacket(address, 123); //NTP requests are to port 123
   udp.write(packetBuffer, NTP_PACKET_SIZE);
   udp.endPacket();
+}
+
+void flip(){
+      Serial.println("*"+String(temperature)+"//"+String(humidity)+"//"+String(cdsValue)+"//"+String(PM10)+"*");
 }
