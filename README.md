@@ -1,7 +1,8 @@
 # AutomanageSystem(C.E.O)
 ### 아두이노를 활용한 강의실 자동 관리 시스템
 
-1. automanage = 자바로 만든 자동관리 프로그램  
+
+1. automanage = 자바로 만든 자동관리 프로그램
 
 ![autoprograme](./doc/AutoPrograme.JPG)
 오토프로그램은 자동관리와 수동관리로 이루어져 있다.
