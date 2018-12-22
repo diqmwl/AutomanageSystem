@@ -29,6 +29,6 @@
 학교뿐만 아니라 환경기준이다른 공장, 빌딩등을 선택할 수 있다.
 
 
-![picture4](./doc/picture4.JPG)
+![picture4](./doc/picture4.jpg)
 
 ### 2) CEO = 아두이노를 활용한 온습도, 미세먼지측정값을 Thingspeak에 저장
