@@ -32,4 +32,4 @@
 ![picture4](./doc/picture4.jpg)
 
 ### 2) CEO = 아두이노를 활용한 온습도, 미세먼지측정값을 Thingspeak에 저장
-- 스케치코드 
+- 스케치코드 참조
